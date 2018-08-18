@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Resources\Default\DefaultThemeSettings.cs" />
+    <Compile Include="Assets\Resources\Default\Platforms\LeftRightMovedDefault.cs" />
     <Compile Include="Assets\Resources\Default\Player\DefaultPlayer.cs" />
     <Compile Include="Assets\Scripts\BasePlayer.cs" />
     <Compile Include="Assets\Scripts\BaseThemeSettings.cs" />

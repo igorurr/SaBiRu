@@ -13,7 +13,7 @@ public abstract class BasePlayer : MonoBehaviour {
 
     public Tuple<Platform, Platform> PairPlatformsLookAts { get { return CurrentJump.PairPlatformsLookAts; } }
 
-    protected abstract List<Vector3> VerticalMove { get; }
+    protected abstract List<Vector3> VerticalMove { get; } // позиции относительно текущей точки игрока
 
     // Use this for initialization
     void Start ()

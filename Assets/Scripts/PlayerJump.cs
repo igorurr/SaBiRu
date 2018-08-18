@@ -10,12 +10,15 @@ public class PlayerJump
     static public List<Vector3> VerticalMove;
 
     public Vector3 From;
-    public Vector3 To;
+    public float PercentFromFromToToWayStartPosition;
+    public Platform FromPlatform;   // текущая платформа
+    public Platform NextPlatform { get { return FromPlatform.NextPlatform; } }   // платформа на сцене после текущей
 
-    public Platform FromPlatform;
-    public Platform ToPlatform;
+    public Vector3 To;
+    public Platform ToPlatform;     // платформа на которой закончится прыжок, может и текущая
 
     public float PositionBetweenPlatforms;    // [0;1]
+    public Ray ScreenRay;
 
     // прямая от начальной до конечной точки
     public Vector3 PositionOnMoveBetweenPlatforms { get { return Vector3.Lerp( From, To, PositionBetweenPlatforms ); } }

@@ -78,11 +78,11 @@ public class RenderCamera : MonoBehaviour {
 
         Vector3 sum1 = new Vector3();
         foreach (Platform v in p1)
-            sum1 += v.transform.position;
+            sum1 += v.StartPosition;
 
         Vector3 sum2 = new Vector3();
         foreach (Platform v in p2)
-            sum2 += v.transform.position;
+            sum2 += v.StartPosition;
 
         m_FromLookAt = sum1 / p1.Count;
         m_ToLookAt = sum2 / p2.Count;
@@ -96,17 +96,17 @@ public class RenderCamera : MonoBehaviour {
         List<Platform> p2 = _Platforms.Item2.GetPlatformBeforeCurrent(-3,-1);
         p2.AddRange(_Platforms.Item2.GetPlatformAfterCurrent(0,3));
 
-        Vector3 DefaultV = -p1[1].gameObject.transform.position;
+        Vector3 DefaultV = -p1[1].StartPosition;
 
         Vector3 sum1 = new Vector3();
         foreach (Platform v in p1)
-            sum1 += v.transform.position;
+            sum1 += v.StartPosition;
         for (int i = p1.Count; i < 7; i++)
             sum1 += DefaultV;
 
         Vector3 sum2 = new Vector3();
         foreach (Platform v in p2)
-            sum2 += v.transform.position;
+            sum2 += v.StartPosition;
         for (int i = p2.Count; i < 7; i++)
             sum2 += DefaultV;
 

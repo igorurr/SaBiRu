@@ -9,17 +9,22 @@ public class Platform : MonoBehaviour {
     public Platform PrevPlatform;
     public Platform NextPlatform;
 
-    public bool IsVisible { get { return RenderCamera.Instance.PlaneIsVisible(this); } }
+    public Vector3 StartPosition;
 
-	// Use this for initialization
+    public bool IsVisible { get { return RenderCamera.Instance.PlaneIsVisible(this); } }
+    
 	void Start() {
         Collider = GetComponent<Collider>();
 
+        StartPosition = transform.position;
+
+        DoStart();
     }
-	
-	// Update is called once per frame
 	void Update () {
+        DoUpdate();
     }
+    protected virtual void DoStart() { }
+    protected virtual void DoUpdate() { }
 
     public List<Platform> GetPlatformAfterCurrent(int _AfterCurentFirst, int _AfterCurentLast)
     {
