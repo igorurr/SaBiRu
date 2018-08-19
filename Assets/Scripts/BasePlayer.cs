@@ -6,31 +6,41 @@ using UnityEngine;
 public abstract class BasePlayer : MonoBehaviour {
 
     public float PlayerSpeed;       // время за которое префаб игрока проходит от одной точки к другой
+    public Platform CurrentPlatform { get; private set; }
+    public int NumberPlatform;
+    public float HowManyPlayerPassedWay;
 
     QueuePlayerJumps m_QueuePlayerJumps;       // Точки на платформах в которые должен прыгать префаб игрока (то что юзер на экране натыкал)
 
-    public PlayerJump CurrentJump;
+    PlayerJump CurrentJump;
 
-    public Tuple<Platform, Platform> PairPlatformsLookAts { get { return CurrentJump.PairPlatformsLookAts; } }
+    public float PercentWayPositionInJamp { get { return CurrentJump.PercentWayPosition; } }
+    public bool NextPlatformIsCurentPlatform { get { return CurrentJump.NextPlatformIsCurentPlatform; } }
 
-    protected abstract List<Vector3> VerticalMove { get; } // позиции относительно текущей точки игрока
+    public abstract List<Vector3> VerticalMove { get; } // позиции относительно текущей точки игрока
 
     // Use this for initialization
     void Start ()
     {
+        HowManyPlayerPassedWay = 0;
+        NumberPlatform = 1;
+
         PlayerSpeed = GlobalSetings.Instance.StartSpeed;
 
         m_QueuePlayerJumps = new QueuePlayerJumps();
 
-        CurrentJump = new PlayerJump( GlobalSetings.TS.PlayerDefaultOffset, RootPlatforms.Instance.StartPlatform);
-        
+        //GlobalSetings.TS.PlayerDefaultOffset
+        CurrentJump = new PlayerJump( this, GlobalSetings.TS.PlayerDefaultOffset);
+        CurrentPlatform = RootPlatforms.Instance.StartPlatform;
+
+
         RenderCamera.Instance.OnClickGameZone += CreateJumpFromPointAndEnqueueFromQueueJump;
     }
 	
 	// Update is called once per frame
 	void Update () {
-        UpdatePlayerOnMoveBetweenPlatforms();
-        UpdatePositionSpherePlayer();
+        CurrentJump.UpdateRayCast();
+        CurrentJump.UpdatePlayerPosition();
     }
 
     private void OnDestroy()
@@ -38,69 +48,73 @@ public abstract class BasePlayer : MonoBehaviour {
         RenderCamera.Instance.OnClickGameZone -= CreateJumpFromPointAndEnqueueFromQueueJump;
     }
 
-    public event Action OnFinishedJump;
+    private void OnCollisionEnter( Collision collision )
+    {
+        Platform p = collision.gameObject.GetComponent<Platform>();
 
-    void GoNextCurveJump()
+        if ( p != null )
+            CurrentJump.CheckCollision(p);
+    }
+
+    public event Action<bool> OnFinishedJump;
+
+    void GoNextJump()
     {
         // подразумевается что если m_QueuePlayerJumps.IsEmpty - то следующая платформа - текущая
 
         if ( m_QueuePlayerJumps.IsEmpty ) { // прыгаем на месте
-            CurrentJump.NewPlayerJumpFromToCurrent();
+            CurrentJump = CurrentJump.NewPlayerJumpFromToCurrent();
         }
-        else {  // прыгаем на след. платформу
+        else
+        {  // прыгаем на след. платформу
+            
+            HowManyPlayerPassedWay += CurrentJump.DistanceJump;
+            CurrentPlatform = CurrentPlatform.NextPlatform;
+            NumberPlatform++;
+
+            PlayerJump opj = CurrentJump;
             CurrentJump = m_QueuePlayerJumps.DequeueJump();
+            CurrentJump.CreateStartPoint( opj.PlayerCurrentPosition );
         }
     }
 
-    void UpdatePlayerOnMoveBetweenPlatforms()
+    void GoZanovoJump()
     {
-        // по данной формуле смотреть: офигительные вычисления координат шарика
-        CurrentJump.PositionBetweenPlatforms += Time.deltaTime * PlayerSpeed*PlayerSpeed / GlobalSetings.Instance.ConstMovingSpherePlayer;
-        CurrentJump.PositionBetweenPlatforms = Mathf.Clamp01(CurrentJump.PositionBetweenPlatforms);
+        CurrentPlatform.StopMove();
+
+        HowManyPlayerPassedWay += CurrentJump.DistanceJump; // так и задумано, не баг а фича
+
+        CurrentJump.CreateStartPoint( CurrentPlatform.transform.position );
     }
 
-    void CreateJumpFromPointAndEnqueueFromQueueJump(Ray ray)
+    void CreateJumpFromPointAndEnqueueFromQueueJump( Ray _Ray )
     {
-        /*
-         Если юзер прыгнет в никуда, но в этом месте позже появится платформа - будет не очень,
-         если юзер прыгнет на платформу а она уедет - тоже не очень.
-
-        первая проблема решается с помощью введения корутин на ожидание появления платформы, ежели там ничего не появится - юзер летит в стандартную точку (ожидаемая позиция платформ на основе соседних наверн) и если там пусто - пролетается
-        вторая проблема: храним луч прыжка юзера, если во время контакта с точкой куда он летит нет ничего - юзер пролетает.
-         
-         */
-        RaycastHit rh;
-        Physics.Raycast(ray, out rh);
-
-        PlayerJump current = m_QueuePlayerJumps.IsEmpty ? CurrentJump : m_QueuePlayerJumps.GetLast;
-
-        Vector3 toPoint = rh.point + GlobalSetings.TS.PlayerDefaultOffset;
-
-        // временное костыльное решение
-        Platform toPlatform = (rh.transform) ? rh.transform.GetComponent<Platform>() : null;
-
-        m_QueuePlayerJumps.EnqueueJump( current.FromHereToThere( rh.point + GlobalSetings.TS.PlayerDefaultOffset, toPlatform ) );
+        m_QueuePlayerJumps.EnqueueJump( new PlayerJump( this, _Ray ) );
     }
 
-    // найти предполагаемую точку приземления юзера если там есть платформа по лучу
-    void FindAssumeJumpEndPoind(Ray _Ray)
+    public void UpdatePosition()
     {
-
+        transform.position = CurrentJump.PlayerCurrentPosition + MultiPointLerp( VerticalMove, CurrentJump.PercentWayPosition );
     }
 
-    void UpdatePositionSpherePlayer()
+    public virtual void FailedJump()
     {
-        transform.position = CurrentJump.PositionOnMoveBetweenPlatforms + MultiPointLerp( VerticalMove, CurrentJump.PositionBetweenPlatforms );
+        Debug.Log("FailedJump");
 
-        if ( CurrentJump.PositionBetweenPlatforms == 1f )
-        {
-            GoNextCurveJump();
-            OnFinishedJump();
-        }
+        GoZanovoJump();
+        OnFinishedJump( false );
+    }
+
+    public virtual void SuccesJump()
+    {
+        Debug.Log("SuccesJump");
+
+        GoNextJump();
+        OnFinishedJump( true );
     }
 
     // после добавлении анимации может пригодится - хз
-    Vector3 MultiPointLerp(List<Vector3> points, float t)
+    public static Vector3 MultiPointLerp(List<Vector3> points, float t)
     {
         float curpointf = t * (points.Count - 1);
         int curpoint = (int)curpointf;

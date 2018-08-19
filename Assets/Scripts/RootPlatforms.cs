@@ -145,11 +145,11 @@ public class RootPlatforms : MonoBehaviour {
         * GlobalSetings.Instance.ForwardVector;
     }
 
-    public Platform GetPlatformAfterCurrent(int _AfterCount = 0)
+    /*public Platform GetPlatformAfterCurrent(int _AfterCount = 0)
     {
         int returnPlatform = m_CurrentPlatform + _AfterCount;
         return ( returnPlatform<m_Platforms.Count && returnPlatform>=0 ) ? m_Platforms[returnPlatform] : null;
-    }
+    }*/
 
     public void NextPlatform()
     {

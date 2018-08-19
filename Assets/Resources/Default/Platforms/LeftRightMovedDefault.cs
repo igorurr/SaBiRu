@@ -44,6 +44,9 @@ namespace DefaultTheme
 
         void MoveLeftRight()
         {
+            if( StopedMooving )
+                return;
+
             Vector3 forvard = ForvardVectorGoingRight ? Forvard : -Forvard;
 
             Vector3 curVec = forvard.normalized * Time.deltaTime * SpeedMoving;

@@ -7,14 +7,14 @@ public class RenderCamera : MonoBehaviour {
 
     public static RenderCamera Instance;
 
-    Plane[] m_CameraPlanes;
-    Camera m_Camera;
+    Plane[]     m_CameraPlanes;
+    Camera      m_Camera;
 
-    Vector3 m_FromLookAt;
-    Vector3 m_ToLookAt;
-
-    Vector3 m_FromPosition;
-    Vector3 m_ToPosition;
+    Platform    m_CurrentPlatform; // у юзера текущая платформа - следующая для текущей платформы камеры, исключения: старт и падение юзера в пропасть
+    Vector3     m_FromLookAt;
+    Vector3     m_ToLookAt;
+    Vector3     m_FromPosition;
+    Vector3     m_ToPosition;
 
     // Use this for initialization
     void Start () {
@@ -25,8 +25,9 @@ public class RenderCamera : MonoBehaviour {
 
         RootPlayers.MainPlayer.OnFinishedJump += BasePlayer_OnFinishedJump;
 
-        GetNewLookAt( new Tuple<Platform, Platform> ( RootPlatforms.Instance.StartPlatform, RootPlatforms.Instance.StartPlatform ) );
-        GetNewPosition( new Tuple<Platform, Platform> ( RootPlatforms.Instance.StartPlatform, RootPlatforms.Instance.StartPlatform ) );
+        m_CurrentPlatform = RootPlatforms.Instance.StartPlatform;
+        GetNewLookAt( RootPlatforms.Instance.StartPlatform );
+        GetNewPosition( RootPlatforms.Instance.StartPlatform );
     }
 	
 	// Update is called once per frame
@@ -59,22 +60,16 @@ public class RenderCamera : MonoBehaviour {
         transform.position =
             // тут должно быть условие проверки на горизонтальную или вертикальную камеру
             GlobalSetings.Instance.CameraHorisontalPositionAbovePlatform +
-            Vector3.Lerp( m_FromPosition, m_ToPosition, RootPlayers.MainPlayer.CurrentJump.PositionBetweenPlatforms );
-
-
-        /*transform.rotation = Quaternion.Euler(
-            //GlobalSetings.Instance.DefaultCameraRotation + 
-            new Vector3( 0, 0, 0 )
-        );*/
+            Vector3.Lerp( m_FromPosition, m_ToPosition, RootPlayers.MainPlayer.PercentWayPositionInJamp );
         
-        transform.LookAt( Vector3.Lerp( m_FromLookAt, m_ToLookAt, RootPlayers.MainPlayer.CurrentJump.PositionBetweenPlatforms ) );
+        transform.LookAt( Vector3.Lerp( m_FromLookAt, m_ToLookAt, RootPlayers.MainPlayer.PercentWayPositionInJamp ) );
         transform.rotation *= Quaternion.Euler( GlobalSetings.Instance.DefaultCameraRotation );
     }
 
-    void GetNewLookAt(Tuple<Platform, Platform> _Platforms)
+    void GetNewLookAt( Platform _ToPlatformView )
     {
-        List<Platform> p1 = _Platforms.Item1.GetPlatformAfterCurrent(0,2);
-        List<Platform> p2 = _Platforms.Item2.GetPlatformAfterCurrent(0,2);
+        List<Platform> p1 = m_CurrentPlatform.NextPlatform.GetPlatformsAroundCurrent(1);
+        List<Platform> p2 = _ToPlatformView.NextPlatform.GetPlatformsAroundCurrent(1);
 
         Vector3 sum1 = new Vector3();
         foreach (Platform v in p1)
@@ -88,34 +83,34 @@ public class RenderCamera : MonoBehaviour {
         m_ToLookAt = sum2 / p2.Count;
     }
 
-    void GetNewPosition(Tuple<Platform, Platform> _Platforms)
+    void GetNewPosition( Platform _ToPlatformView )
     {
-        List<Platform> p1 = _Platforms.Item1.GetPlatformBeforeCurrent(-3,-1);
-        p1.AddRange(_Platforms.Item1.GetPlatformAfterCurrent(0,3));
+        // дефолтные платформы будут использоваться только на старте, когда до первой платформы платформ нет
+        List<Platform> p1 = m_CurrentPlatform.GetPlatformsAroundCurrent( 3 );
+        List<Platform> p2 = _ToPlatformView.GetPlatformsAroundCurrent( 3 );
 
-        List<Platform> p2 = _Platforms.Item2.GetPlatformBeforeCurrent(-3,-1);
-        p2.AddRange(_Platforms.Item2.GetPlatformAfterCurrent(0,3));
-
-        Vector3 DefaultV = -p1[1].StartPosition;
+        //Vector3 minusFirstPlatformPosition
 
         Vector3 sum1 = new Vector3();
         foreach (Platform v in p1)
             sum1 += v.StartPosition;
-        for (int i = p1.Count; i < 7; i++)
-            sum1 += DefaultV;
 
         Vector3 sum2 = new Vector3();
         foreach (Platform v in p2)
             sum2 += v.StartPosition;
-        for (int i = p2.Count; i < 7; i++)
-            sum2 += DefaultV;
 
-        m_FromPosition = sum1 / 7;
-        m_ToPosition = sum2 / 7;
+        m_FromPosition = sum1 / p1.Count;
+        m_ToPosition = sum2 / p2.Count;
     }
 
-    void BasePlayer_OnFinishedJump() {
-        GetNewLookAt(RootPlayers.MainPlayer.PairPlatformsLookAts);
-        GetNewPosition(RootPlayers.MainPlayer.PairPlatformsLookAts);
+    void BasePlayer_OnFinishedJump( bool _JumpSucces ) {
+        if ( 
+            ( _JumpSucces && m_CurrentPlatform.NextPlatform.NextPlatform != RootPlayers.MainPlayer.CurrentPlatform ) || // тек. плат. камеры отстаёт на 1 платформу от тек. для юзера, затем происходит у юзера GoNextJump, а тек. плат. камеры ещё не апдейтнулась
+            ( !_JumpSucces && m_CurrentPlatform != RootPlayers.MainPlayer.CurrentPlatform )         // Юзер зафейлил прыжок и текущая платформа камеры пока не пришла в текущую для юзера
+        )
+            m_CurrentPlatform = m_CurrentPlatform.NextPlatform;
+
+        GetNewLookAt( RootPlayers.MainPlayer.CurrentPlatform );
+        GetNewPosition( RootPlayers.MainPlayer.CurrentPlatform );
     }
 }

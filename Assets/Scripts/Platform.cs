@@ -11,10 +11,14 @@ public class Platform : MonoBehaviour {
 
     public Vector3 StartPosition;
 
+    public bool StopedMooving { get; private set; }
+
     public bool IsVisible { get { return RenderCamera.Instance.PlaneIsVisible(this); } }
     
 	void Start() {
         Collider = GetComponent<Collider>();
+
+        StopedMooving = false;
 
         StartPosition = transform.position;
 
@@ -26,39 +30,38 @@ public class Platform : MonoBehaviour {
     protected virtual void DoStart() { }
     protected virtual void DoUpdate() { }
 
-    public List<Platform> GetPlatformAfterCurrent(int _AfterCurentFirst, int _AfterCurentLast)
+    public List<Platform> GetPlatformsAroundCurrent( int _Count )
     {
-        List<Platform> l = new List<Platform>();
-        Platform cur = this;
+        List<Platform> l = new List<Platform> { this };
 
-        for (int i = 0; i <= _AfterCurentLast; i++)
+        Platform prev = PrevPlatform;
+        Platform next = NextPlatform;
+
+        for (int i = 0; i >= _Count; i--)
         {
-            if (i >= _AfterCurentFirst)
-                l.Add(cur);
+            if( next != null )
+            {
+                l.Add( next );
+                next = next.NextPlatform;
+            }
 
-            if ( cur.NextPlatform == null )
-                break;
-            cur = cur.NextPlatform;
+            if ( prev != null )
+            {
+                l.Insert( 0, prev );
+                prev = prev.PrevPlatform;
+            }
         }
 
         return l;
     }
 
-    public List<Platform> GetPlatformBeforeCurrent(int _AfterCurentFirst, int _AfterCurentLast)
+    public void StartMove()
     {
-        List<Platform> l = new List<Platform>();
-        Platform cur = this;
+        StopedMooving = false;
+    }
 
-        for (int i = 0; i >= _AfterCurentFirst; i--)
-        {
-            if (i <= _AfterCurentLast)
-                l.Insert(0,cur);
-
-            if( cur.PrevPlatform == null )
-                break;
-            cur = cur.PrevPlatform;
-        }
-
-        return l;
+    public void StopMove()
+    {
+        StopedMooving = true;
     }
 }
