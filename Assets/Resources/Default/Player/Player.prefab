@@ -97,7 +97,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PlayerSpeed: 0
-  CurrentPlatform: {fileID: 0}
+  NumberPlatform: 0
+  HowManyPlayerPassedWay: 0
 --- !u!135 &135862251164655044
 SphereCollider:
   m_ObjectHideFlags: 1

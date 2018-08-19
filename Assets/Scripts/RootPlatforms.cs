@@ -119,7 +119,8 @@ public class RootPlatforms : MonoBehaviour {
 
     Platform GetRandomPlatform()
     {
-        GameObject platformPrefab = m_PrefabsPlatforms[(int)(Random.value * (m_PrefabsPlatforms.Count))];
+        //GameObject platformPrefab = m_PrefabsPlatforms[(int)(Random.value * (m_PrefabsPlatforms.Count))];
+        GameObject platformPrefab = m_PrefabsPlatforms[1];
         GameObject platformGO = Instantiate( platformPrefab, LastPointPosition, platformPrefab.transform.rotation, transform );
 
         LastPointPosition += GetForvardVectorRandomedDispersion();

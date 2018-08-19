@@ -20,7 +20,7 @@ namespace DefaultTheme
         {
             base.DoStart();
 
-            SpeedMoving = 400;
+            SpeedMoving = 25;
 
             Forvard = new Vector3(200, 0, 0);
             ForvardVectorGoingRight = true;

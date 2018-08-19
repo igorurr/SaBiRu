@@ -31,8 +31,10 @@ public abstract class BasePlayer : MonoBehaviour {
 
         //GlobalSetings.TS.PlayerDefaultOffset
         CurrentJump = new PlayerJump( this, GlobalSetings.TS.PlayerDefaultOffset);
-        CurrentPlatform = RootPlatforms.Instance.StartPlatform;
 
+        CurrentPlatform = RootPlatforms.Instance.StartPlatform;
+        CurrentPlatform.StopMove();
+        CurrentPlatform.NextPlatform.ShowIndicatorNextPlatform();
 
         RenderCamera.Instance.OnClickGameZone += CreateJumpFromPointAndEnqueueFromQueueJump;
     }
@@ -48,30 +50,31 @@ public abstract class BasePlayer : MonoBehaviour {
         RenderCamera.Instance.OnClickGameZone -= CreateJumpFromPointAndEnqueueFromQueueJump;
     }
 
-    private void OnCollisionEnter( Collision collision )
-    {
-        Platform p = collision.gameObject.GetComponent<Platform>();
-
-        if ( p != null )
-            CurrentJump.CheckCollision(p);
-    }
-
     public event Action<bool> OnFinishedJump;
 
     void GoNextJump()
     {
         // подразумевается что если m_QueuePlayerJumps.IsEmpty - то следующая платформа - текущая
+        
+        if( !CurrentJump.NextPlatformIsCurentPlatform )
+        {
+            HowManyPlayerPassedWay += CurrentJump.DistanceJumpMoment;
+            NumberPlatform++;
+
+            CurrentPlatform = CurrentPlatform.NextPlatform;
+
+            CurrentPlatform.HideIndicatorNextPlatform();
+            CurrentPlatform.NextPlatform.ShowIndicatorNextPlatform();
+        }
 
         if ( m_QueuePlayerJumps.IsEmpty ) { // прыгаем на месте
+            int a = 0;
+            if (!CurrentJump.NextPlatformIsCurentPlatform)
+                a = 0;
             CurrentJump = CurrentJump.NewPlayerJumpFromToCurrent();
         }
         else
         {  // прыгаем на след. платформу
-            
-            HowManyPlayerPassedWay += CurrentJump.DistanceJump;
-            CurrentPlatform = CurrentPlatform.NextPlatform;
-            NumberPlatform++;
-
             PlayerJump opj = CurrentJump;
             CurrentJump = m_QueuePlayerJumps.DequeueJump();
             CurrentJump.CreateStartPoint( opj.PlayerCurrentPosition );
@@ -82,19 +85,21 @@ public abstract class BasePlayer : MonoBehaviour {
     {
         CurrentPlatform.StopMove();
 
-        HowManyPlayerPassedWay += CurrentJump.DistanceJump; // так и задумано, не баг а фича
+        HowManyPlayerPassedWay += CurrentJump.DistanceJumpMoment; // так и задумано, не баг а фича
 
         CurrentJump.CreateStartPoint( CurrentPlatform.transform.position );
     }
 
     void CreateJumpFromPointAndEnqueueFromQueueJump( Ray _Ray )
     {
+        Debug.Log("was click");
         m_QueuePlayerJumps.EnqueueJump( new PlayerJump( this, _Ray ) );
     }
 
     public void UpdatePosition()
     {
-        transform.position = CurrentJump.PlayerCurrentPosition + MultiPointLerp( VerticalMove, CurrentJump.PercentWayPosition );
+        Platform p = RootPlatforms.Instance.StartPlatform;
+        transform.position = CurrentJump.PlayerCurrentPosition;
     }
 
     public virtual void FailedJump()

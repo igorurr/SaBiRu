@@ -14,11 +14,15 @@ public class Platform : MonoBehaviour {
     public bool StopedMooving { get; private set; }
 
     public bool IsVisible { get { return RenderCamera.Instance.PlaneIsVisible(this); } }
+
+    public GameObject IndicatorNextPlatform;
+    public bool IndicatorNextPlatformIsActive { get; private set; }
     
 	void Start() {
         Collider = GetComponent<Collider>();
-
         StopedMooving = false;
+
+        HideIndicatorNextPlatform();
 
         StartPosition = transform.position;
 
@@ -63,5 +67,18 @@ public class Platform : MonoBehaviour {
     public void StopMove()
     {
         StopedMooving = true;
+    }
+
+
+    public void ShowIndicatorNextPlatform()
+    {
+        IndicatorNextPlatformIsActive = true;
+        IndicatorNextPlatform.SetActive( IndicatorNextPlatformIsActive );
+    }
+
+    public void HideIndicatorNextPlatform()
+    {
+        IndicatorNextPlatformIsActive = false;
+        IndicatorNextPlatform.SetActive( IndicatorNextPlatformIsActive );
     }
 }

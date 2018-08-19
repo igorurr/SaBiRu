@@ -64,6 +64,8 @@ public class RenderCamera : MonoBehaviour {
         
         transform.LookAt( Vector3.Lerp( m_FromLookAt, m_ToLookAt, RootPlayers.MainPlayer.PercentWayPositionInJamp ) );
         transform.rotation *= Quaternion.Euler( GlobalSetings.Instance.DefaultCameraRotation );
+
+        //Debug.LogFormat("ProcessPositionCamera rotation: {0}", transform.rotation);
     }
 
     void GetNewLookAt( Platform _ToPlatformView )
@@ -105,7 +107,7 @@ public class RenderCamera : MonoBehaviour {
 
     void BasePlayer_OnFinishedJump( bool _JumpSucces ) {
         if ( 
-            ( _JumpSucces && m_CurrentPlatform.NextPlatform.NextPlatform != RootPlayers.MainPlayer.CurrentPlatform ) || // тек. плат. камеры отстаёт на 1 платформу от тек. для юзера, затем происходит у юзера GoNextJump, а тек. плат. камеры ещё не апдейтнулась
+            ( _JumpSucces && m_CurrentPlatform.NextPlatform.NextPlatform == RootPlayers.MainPlayer.CurrentPlatform ) || // тек. плат. камеры отстаёт на 1 платформу от тек. для юзера, затем происходит у юзера GoNextJump, а тек. плат. камеры ещё не апдейтнулась
             ( !_JumpSucces && m_CurrentPlatform != RootPlayers.MainPlayer.CurrentPlatform )         // Юзер зафейлил прыжок и текущая платформа камеры пока не пришла в текущую для юзера
         )
             m_CurrentPlatform = m_CurrentPlatform.NextPlatform;

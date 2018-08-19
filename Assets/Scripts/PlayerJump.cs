@@ -15,10 +15,12 @@ public class PlayerJump
     Vector3         m_AfterCrossedForwardVector;
     float           m_DistanceJump; // изменять только в начале
 
-    public Vector3  PlayerCurrentPosition { get; private set; }
+    public Vector3  PlayerCurrentPositionXoZ { get; private set; }
+    public Vector3  PlayerCurrentPosition { get { return PlayerCurrentPositionXoZ + ( m_FinishPointWasCrossed ? new Vector3(0,0,0) : BasePlayer.MultiPointLerp( m_Player.VerticalMove, m_PercentWayPosition ) ); } }
+
     public bool     NextPlatformIsCurentPlatform { get; private set; }
     public float    PercentWayPosition { get { return m_FinishPointWasCrossed ? 1 : m_PercentWayPosition; } }
-    public float    DistanceJump { get { return Mathf.Lerp( 0, m_DistanceJump, PercentWayPosition ); } }
+    public float    DistanceJumpMoment { get { return Mathf.Lerp( 0, m_DistanceJump, PercentWayPosition ); } }
 
 
     // си шарп не думает что если у класса есть контструктор с аргументами, то есть и конструктор по умолчанию.
@@ -39,6 +41,7 @@ public class PlayerJump
         m_FinishPointWasCrossed = false;
         m_PercentWayPosition = 0;
         m_DistanceJump = (m_From - m_To).magnitude;
+        PlayerCurrentPositionXoZ = _From;
 
         NextPlatformIsCurentPlatform = _NextPlatformIsCurentPlatform;
     }
@@ -91,6 +94,7 @@ public class PlayerJump
         m_PercentWayStartPosition = 0;
         m_FinishPointWasCrossed = false;
         m_PercentWayPosition = 0;
+        PlayerCurrentPositionXoZ = _From;
     }
 
     // прыгать на месте в текущей точке
@@ -126,12 +130,14 @@ public class PlayerJump
 
     public void UpdatePlayerPosition()
     {
+        Vector3 oldPosition = PlayerCurrentPosition;
+
         m_PercentWayPosition += Time.deltaTime * m_Player.PlayerSpeed / GlobalSetings.Instance.ConstMovingSpherePlayer;
         m_PercentWayPosition = Mathf.Clamp01(m_PercentWayPosition);
 
         if ( m_FinishPointWasCrossed )
         {
-            PlayerCurrentPosition = m_AfterCrossedForwardVector * m_PercentWayPosition;
+            PlayerCurrentPositionXoZ = m_AfterCrossedForwardVector * m_PercentWayPosition;
 
             if ( m_PercentWayPosition == 1 )
                 m_Player.FailedJump();
@@ -140,7 +146,7 @@ public class PlayerJump
         {
             float percentSubWayPosition = ( m_PercentWayPosition - m_PercentWayStartPosition ) / ( 1 - m_PercentWayStartPosition );
 
-            PlayerCurrentPosition = new Vector3(
+            PlayerCurrentPositionXoZ = new Vector3(
                 Mathf.Lerp( m_From.x, m_To.x, percentSubWayPosition ),
                 Mathf.Lerp( m_From.y, m_To.y, percentSubWayPosition ),
                 Mathf.Lerp( m_From.z, m_To.z, percentSubWayPosition )
@@ -148,6 +154,8 @@ public class PlayerJump
 
             if ( m_PercentWayPosition == 1 )
             {
+                CheckCollision(oldPosition, PlayerCurrentPosition);
+
                 m_PercentWayPosition = 0;
                 m_FinishPointWasCrossed = true;
 
@@ -162,24 +170,36 @@ public class PlayerJump
                     Mathf.Lerp( m_From.z, m_To.z, subPercentAfterCrossedForwardVectorForStartPoint )
                 ) + BasePlayer.MultiPointLerp( m_Player.VerticalMove, percentAfterCrossedForwardVectorForStartPoint );
 
-                m_AfterCrossedForwardVector = ( AfterCrossedForwardVectorStartPoint - m_To ).normalized * multiplieAfterCrossedForwardVectorr;
+                m_AfterCrossedForwardVector = ( m_To - AfterCrossedForwardVectorStartPoint ).normalized * multiplieAfterCrossedForwardVectorr;
             }
         }
 
         m_Player.UpdatePosition();
+        CheckCollision( oldPosition, PlayerCurrentPosition );
     }
 
     void UpdateEndPoint()
     {
-        m_From = PlayerCurrentPosition;
+        m_From = PlayerCurrentPositionXoZ;
         m_PercentWayStartPosition = m_PercentWayPosition;
     }
 
-    public void CheckCollision( Platform _Platform )
+    // ебал я в рот ваши неработающие ontriggerenterы и oncollisionы, разработчики юнити
+    public void CheckCollision( Vector3 startPoint, Vector3 endpoint )
     {
-        if( 
-            ( NextPlatformIsCurentPlatform && _Platform == m_Player.CurrentPlatform ) ||
-            ( !NextPlatformIsCurentPlatform && _Platform == m_Player.CurrentPlatform.NextPlatform )
+        Ray ray = new Ray( startPoint, endpoint-startPoint );
+        
+        RaycastHit rh;
+        bool wasRaycastHit = Physics.Raycast( ray, out rh, (endpoint-startPoint).magnitude );
+        Debug.LogFormat("CheckCollision StartPoint: {0}, EndPoint: {1}, wasRayCast: {2}, currentPlatf: {3}", startPoint, endpoint, wasRaycastHit, m_Player.CurrentPlatform.StartPosition);
+        if( !wasRaycastHit )
+            return;
+
+        Platform p = rh.transform.GetComponent<Platform>();
+
+        if(
+            ( NextPlatformIsCurentPlatform && p == m_Player.CurrentPlatform ) ||
+            ( !NextPlatformIsCurentPlatform && p == m_Player.CurrentPlatform.NextPlatform )
         )
             m_Player.SuccesJump();
     }
